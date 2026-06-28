@@ -98,22 +98,26 @@
 
     function copyToWhatsApp() {
         let report = "--- Expense Report ---\n```\n";
-        let rows = document.querySelectorAll('#tableBody tr');
+        // Header
+        report += "Desc       | Cost   | Cashb. | Final\n";
+        report += "-----------|--------|--------|--------\n";
         
+        let rows = document.querySelectorAll('#tableBody tr');
         rows.forEach(row => {
             let desc = (row.querySelector('.desc').value || "Item").padEnd(10);
             let cost = row.querySelector('.cost').value.padEnd(6);
             let cash = row.querySelector('.cashback').value.padEnd(6);
-            let final = row.querySelector('.final-value').innerText;
+            let final = row.querySelector('.final-value').innerText.padEnd(8);
+            
             report += `${desc} | ${cost} | ${cash} | ${final}\n`;
         });
         
-        report += "----------------------------\n";
+        report += "------------------------------------------\n";
         report += "Total: " + document.getElementById('grandTotal').innerText;
         report += "\n```";
 
         navigator.clipboard.writeText(report).then(() => {
-            alert("Table copied to clipboard! Paste it in WhatsApp.");
+            alert("Formatted table copied! Paste it in WhatsApp.");
         });
     }
 </script>
