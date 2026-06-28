@@ -5,84 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .table-container { overflow-x: auto; }
+        body { font-family: sans-serif; padding: 10px; }
+        
+        /* Table Layout for Desktop */
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Mobile Responsive Strategy: Stacked Cards */
+        @media screen and (max-width: 600px) {
+            thead { display: none; } /* Hide headers */
+            tr { display: block; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 8px; }
+            td { display: block; text-align: right; border: none; padding: 5px 0; }
+            td::before { content: attr(data-label); float: left; font-weight: bold; }
+            input { width: 60%; }
+        }
+
         .total-row { font-weight: bold; background-color: #f9f9f9; }
-        button { padding: 10px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button { padding: 12px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; width: 100%; }
     </style>
 </head>
 <body>
 
-<h2>Product Cost Calculator</h2>
+<h2>Expense Tracker</h2>
 
-<div class="table-container">
-    <table id="productTable">
-        <thead>
-            <tr>
-                <th>Product Description</th>
-                <th>Actual Cost</th>
-                <th>Cashback</th>
-                <th>Final Value</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <tr>
-                <td><input type="text" placeholder="Item name"></td>
-                <td><input type="text" class="cost" value="0" oninput="calculate()"></td>
-                <td><input type="text" class="cashback" value="0" oninput="calculate()"></td>
-                <td class="final-value">0.00</td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr class="total-row">
-                <td colspan="3" style="text-align: right;">Total Final Value:</td>
-                <td id="grandTotal">0.00</td>
-            </tr>
-        </tfoot>
-    </table>
-    <button onclick="addRow()">Add Row</button>
-</div>
+<table id="productTable">
+    <thead>
+        <tr>
+            <th>Description</th>
+            <th>Cost</th>
+            <th>Cashback</th>
+            <th>Final</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody">
+        <tr>
+            <td data-label="Description"><input type="text" placeholder="Item name"></td>
+            <td data-label="Actual Cost"><input type="text" class="cost" value="0" oninput="calculate()"></td>
+            <td data-label="Cashback"><input type="text" class="cashback" value="0" oninput="calculate()"></td>
+            <td data-label="Final Value" class="final-value">0.00</td>
+        </tr>
+    </tbody>
+    <tfoot>
+        <tr class="total-row">
+            <td colspan="3" style="text-align: right;">Total:</td>
+            <td id="grandTotal">0.00</td>
+        </tr>
+    </tfoot>
+</table>
+<button onclick="addRow()">+ Add New Item</button>
 
 <script>
-    // Helper to safely evaluate math strings like "75+99"
     function evaluateMath(str) {
         try {
-            // Regex allows numbers and math operators (+, -, *, /) only
             if (/^[0-9+\-*/. ]+$/.test(str)) {
                 return eval(str);
             }
             return parseFloat(str) || 0;
-        } catch (e) {
-            return 0;
-        }
+        } catch (e) { return 0; }
     }
 
     function calculate() {
         let rows = document.querySelectorAll('#tableBody tr');
         let grandTotal = 0;
-
         rows.forEach(row => {
             let cost = evaluateMath(row.querySelector('.cost').value);
             let cashback = evaluateMath(row.querySelector('.cashback').value);
             let final = cost - cashback;
-            
             row.querySelector('.final-value').innerText = final.toFixed(2);
             grandTotal += final;
         });
-
         document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
     }
 
     function addRow() {
         let tbody = document.getElementById('tableBody');
         let newRow = `<tr>
-            <td><input type="text" placeholder="Item name"></td>
-            <td><input type="text" class="cost" value="0" oninput="calculate()"></td>
-            <td><input type="text" class="cashback" value="0" oninput="calculate()"></td>
-            <td class="final-value">0.00</td>
+            <td data-label="Description"><input type="text" placeholder="Item name"></td>
+            <td data-label="Actual Cost"><input type="text" class="cost" value="0" oninput="calculate()"></td>
+            <td data-label="Cashback"><input type="text" class="cashback" value="0" oninput="calculate()"></td>
+            <td data-label="Final Value" class="final-value">0.00</td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', newRow);
     }
