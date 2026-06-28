@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
+    <title>Expense Tracker Pro</title>
     <style>
         body { font-family: sans-serif; padding: 10px; max-width: 800px; margin: auto; }
-        
-        /* Table Layout for Desktop */
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        /* Mobile Responsive Strategy: Stacked Cards */
         @media screen and (max-width: 600px) {
             thead { display: none; } 
             tr { display: block; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 8px; }
@@ -20,12 +16,12 @@
             td::before { content: attr(data-label); float: left; font-weight: bold; }
             input { width: 60%; }
         }
-
-        .total-row { font-weight: bold; background-color: #f9f9f9; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 4px; color: white; flex: 1; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; color: white; }
         .add-btn { background: #007bff; }
         .whatsapp-btn { background: #25d366; }
+        .export-btn { background: #6c757d; }
+        .import-btn { background: #17a2b8; }
     </style>
 </head>
 <body>
@@ -34,12 +30,7 @@
 
 <table id="productTable">
     <thead>
-        <tr>
-            <th>Description</th>
-            <th>Cost</th>
-            <th>Cashback</th>
-            <th>Final</th>
-        </tr>
+        <tr><th>Description</th><th>Cost</th><th>Cashback</th><th>Final</th></tr>
     </thead>
     <tbody id="tableBody">
         <tr>
@@ -50,7 +41,7 @@
         </tr>
     </tbody>
     <tfoot>
-        <tr class="total-row">
+        <tr style="font-weight: bold;">
             <td colspan="3" style="text-align: right;">Total:</td>
             <td id="grandTotal">0.00</td>
         </tr>
@@ -58,24 +49,19 @@
 </table>
 
 <div class="btn-group">
-    <button class="add-btn" onclick="addRow()">+ Add New Item</button>
+    <button class="add-btn" onclick="addRow()">+ Row</button>
     <button class="whatsapp-btn" onclick="copyToWhatsApp()">Copy for WhatsApp</button>
+    <button class="export-btn" onclick="exportData()">Export Data</button>
+    <button class="import-btn" onclick="document.getElementById('importFile').click()">Import Data</button>
+    <input type="file" id="importFile" style="display:none" onchange="importData(event)">
 </div>
 
 <script>
-    function evaluateMath(str) {
-        try {
-            if (/^[0-9+\-*/. ]+$/.test(str)) {
-                return eval(str);
-            }
-            return parseFloat(str) || 0;
-        } catch (e) { return 0; }
-    }
+    function evaluateMath(str) { try { return (/^[0-9+\-*/. ]+$/.test(str)) ? eval(str) : parseFloat(str) || 0; } catch(e){ return 0; } }
 
     function calculate() {
-        let rows = document.querySelectorAll('#tableBody tr');
         let grandTotal = 0;
-        rows.forEach(row => {
+        document.querySelectorAll('#tableBody tr').forEach(row => {
             let cost = evaluateMath(row.querySelector('.cost').value);
             let cashback = evaluateMath(row.querySelector('.cashback').value);
             let final = cost - cashback;
@@ -85,42 +71,50 @@
         document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
     }
 
-    function addRow() {
-        let tbody = document.getElementById('tableBody');
-        let newRow = `<tr>
-            <td data-label="Description"><input type="text" class="desc" placeholder="Item name"></td>
-            <td data-label="Actual Cost"><input type="text" class="cost" value="0" oninput="calculate()"></td>
-            <td data-label="Cashback"><input type="text" class="cashback" value="0" oninput="calculate()"></td>
+    function addRow(data = {desc: '', cost: '0', cash: '0'}) {
+        let row = `<tr>
+            <td data-label="Description"><input type="text" class="desc" value="${data.desc}" placeholder="Item name"></td>
+            <td data-label="Actual Cost"><input type="text" class="cost" value="${data.cost}" oninput="calculate()"></td>
+            <td data-label="Cashback"><input type="text" class="cashback" value="${data.cash}" oninput="calculate()"></td>
             <td data-label="Final Value" class="final-value">0.00</td>
         </tr>`;
-        tbody.insertAdjacentHTML('beforeend', newRow);
+        document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
+        calculate();
+    }
+
+    function exportData() {
+        let name = prompt("Enter filename to save:", "expenses.json");
+        if (!name) return;
+        let data = [];
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            data.push({ desc: row.querySelector('.desc').value, cost: row.querySelector('.cost').value, cash: row.querySelector('.cashback').value });
+        });
+        let blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url; a.download = name.endsWith('.json') ? name : name + '.json';
+        a.click();
+    }
+
+    function importData(event) {
+        let file = event.target.files[0];
+        let reader = new FileReader();
+        reader.onload = (e) => {
+            let data = JSON.parse(e.target.result);
+            document.getElementById('tableBody').innerHTML = '';
+            data.forEach(item => addRow(item));
+        };
+        reader.readAsText(file);
     }
 
     function copyToWhatsApp() {
-        let report = "--- Expense Report ---\n```\n";
-        // Header
-        report += "Desc       | Cost   | Cashb. | Final\n";
-        report += "-----------|--------|--------|--------\n";
-        
-        let rows = document.querySelectorAll('#tableBody tr');
-        rows.forEach(row => {
-            let desc = (row.querySelector('.desc').value || "Item").padEnd(10);
-            let cost = row.querySelector('.cost').value.padEnd(6);
-            let cash = row.querySelector('.cashback').value.padEnd(6);
-            let final = row.querySelector('.final-value').innerText.padEnd(8);
-            
-            report += `${desc} | ${cost} | ${cash} | ${final}\n`;
+        let report = "--- Expense Report ---\n```\nDesc       | Cost   | Cashb. | Final\n-----------|--------|--------|--------\n";
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            report += `${(row.querySelector('.desc').value || "Item").padEnd(10)} | ${row.querySelector('.cost').value.padEnd(6)} | ${row.querySelector('.cashback').value.padEnd(6)} | ${row.querySelector('.final-value').innerText.padEnd(8)}\n`;
         });
-        
-        report += "------------------------------------------\n";
-        report += "Total: " + document.getElementById('grandTotal').innerText;
-        report += "\n```";
-
-        navigator.clipboard.writeText(report).then(() => {
-            alert("Formatted table copied! Paste it in WhatsApp.");
-        });
+        report += "------------------------------------------\nTotal: " + document.getElementById('grandTotal').innerText + "\n```";
+        navigator.clipboard.writeText(report).then(() => alert("Copied for WhatsApp!"));
     }
 </script>
-
 </body>
 </html>
