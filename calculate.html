@@ -9,24 +9,30 @@
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Mobile: Cards */
         @media screen and (max-width: 600px) {
             thead { display: none; } 
-            tr { display: block; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 8px; }
+            tr { display: block; margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fff; }
             td { display: block; text-align: right; border: none; padding: 5px 0; }
             td::before { content: attr(data-label); float: left; font-weight: bold; }
             input { width: 60%; }
         }
+
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; color: white; }
         .add-btn { background: #007bff; }
         .whatsapp-btn { background: #25d366; }
         .export-btn { background: #6c757d; }
         .import-btn { background: #17a2b8; }
+        
+        /* This hides buttons when you are preparing for a screenshot */
+        .hide-for-screenshot { display: none !important; }
     </style>
 </head>
 <body>
 
-<h2>Expense Tracker</h2>
+<h2 id="title">Expense Tracker</h2>
 
 <table id="productTable">
     <thead>
@@ -48,15 +54,21 @@
     </tfoot>
 </table>
 
-<div class="btn-group">
+<div class="btn-group" id="controls">
     <button class="add-btn" onclick="addRow()">+ Row</button>
-    <button class="whatsapp-btn" onclick="copyToWhatsApp()">Copy for WhatsApp</button>
-    <button class="export-btn" onclick="exportData()">Export Data</button>
-    <button class="import-btn" onclick="document.getElementById('importFile').click()">Import Data</button>
+    <button class="whatsapp-btn" onclick="copyToWhatsApp()">Copy Text</button>
+    <button class="export-btn" onclick="exportData()">Export</button>
+    <button class="import-btn" onclick="document.getElementById('importFile').click()">Import</button>
+    <button style="background: #e83e8c;" onclick="prepareScreenshot()">📷 Prepare Screenshot</button>
     <input type="file" id="importFile" style="display:none" onchange="importData(event)">
 </div>
 
 <script>
+    function prepareScreenshot() {
+        document.getElementById('controls').classList.add('hide-for-screenshot');
+        alert("Buttons hidden. Take your screenshot now! Refresh the page to bring buttons back.");
+    }
+
     function evaluateMath(str) { try { return (/^[0-9+\-*/. ]+$/.test(str)) ? eval(str) : parseFloat(str) || 0; } catch(e){ return 0; } }
 
     function calculate() {
@@ -83,7 +95,7 @@
     }
 
     function exportData() {
-        let name = prompt("Enter filename to save:", "expenses.json");
+        let name = prompt("Enter filename:", "expenses.json");
         if (!name) return;
         let data = [];
         document.querySelectorAll('#tableBody tr').forEach(row => {
@@ -113,7 +125,7 @@
             report += `${(row.querySelector('.desc').value || "Item").padEnd(10)} | ${row.querySelector('.cost').value.padEnd(6)} | ${row.querySelector('.cashback').value.padEnd(6)} | ${row.querySelector('.final-value').innerText.padEnd(8)}\n`;
         });
         report += "------------------------------------------\nTotal: " + document.getElementById('grandTotal').innerText + "\n```";
-        navigator.clipboard.writeText(report).then(() => alert("Copied for WhatsApp!"));
+        navigator.clipboard.writeText(report).then(() => alert("Copied! Paste into WhatsApp."));
     }
 </script>
 </body>
