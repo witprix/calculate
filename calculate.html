@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker Pro</title>
     <style>
-        body { font-family: sans-serif; padding: 10px; max-width: 800px; margin: auto; }
+        body { font-family: sans-serif; padding: 10px; max-width: 800px; margin: auto; transition: background 0.3s; }
+        
+        /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         
-        /* Spreadsheet Mode Styling */
+        /* Spreadsheet Mode (For Screenshotting) */
         .spreadsheet-mode input { border: none; background: transparent; pointer-events: none; }
         .spreadsheet-mode th { background-color: #f2f2f2; border: 1px solid #aaa; }
         .spreadsheet-mode td { border: 1px solid #aaa; }
         .spreadsheet-mode #controls { display: none !important; }
+        .spreadsheet-mode h2 { display: none; }
 
         @media screen and (max-width: 600px) {
             thead { display: none; } 
@@ -27,7 +30,7 @@
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; color: white; }
         .add-btn { background: #007bff; }
-        .export-btn { background: #28a745; }
+        .export-btn { background: #6c757d; }
         .import-btn { background: #17a2b8; }
         .view-btn { background: #fd7e14; }
     </style>
@@ -57,8 +60,8 @@
 </table>
 
 <div class="btn-group" id="controls">
-    <button class="add-btn" onclick="addRow()">+ Row</button>
-    <button class="export-btn" onclick="exportToCSV()">Export (CSV)</button>
+    <button class="add-btn" onclick="addRow()">+ Add Row</button>
+    <button class="export-btn" onclick="exportData()">Export (JSON)</button>
     <button class="import-btn" onclick="document.getElementById('importFile').click()">Import</button>
     <button class="view-btn" onclick="toggleSpreadsheetView()">View as Spreadsheet</button>
     <input type="file" id="importFile" style="display:none" onchange="importData(event)">
@@ -68,7 +71,7 @@
     function toggleSpreadsheetView() {
         document.getElementById('mainBody').classList.toggle('spreadsheet-mode');
         if (document.getElementById('mainBody').classList.contains('spreadsheet-mode')) {
-            alert("Spreadsheet Mode: Buttons are hidden. Take your screenshot now! Refresh the page to return to edit mode.");
+            alert("Spreadsheet Mode enabled. Take your screenshot now! Refresh the page to return to edit mode.");
         }
     }
 
@@ -97,17 +100,18 @@
         calculate();
     }
 
-    function exportToCSV() {
-        let name = prompt("Enter filename:", "expenses.csv");
+    function exportData() {
+        let name = prompt("Enter filename to save:", "expenses.json");
         if (!name) return;
-        let csvContent = "Description,Actual Cost,Cashback,Final Value\n";
+        let data = [];
         document.querySelectorAll('#tableBody tr').forEach(row => {
-            csvContent += `"${row.querySelector('.desc').value}","${row.querySelector('.cost').value}","${row.querySelector('.cashback').value}","${row.querySelector('.final-value').innerText}"\n`;
+            data.push({ desc: row.querySelector('.desc').value, cost: row.querySelector('.cost').value, cash: row.querySelector('.cashback').value });
         });
-        let blob = new Blob([csvContent], {type: "text/csv"});
+        let blob = new Blob([JSON.stringify(data)], {type: "application/json"});
         let url = URL.createObjectURL(blob);
         let a = document.createElement('a');
-        a.href = url; a.download = name.endsWith('.csv') ? name : name + '.csv';
+        a.href = url;
+        a.download = name.endsWith('.json') ? name : name + '.json';
         a.click();
     }
 
