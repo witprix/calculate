@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- This meta tag is crucial for mobile scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Expense Tracker Pro</title>
     <style>
         :root { --primary: #4f46e5; --danger: #ef4444; }
         body { font-family: sans-serif; padding: 10px; margin: 0; background: #f4f4f7; }
         
-        h2 { text-align: center; font-size: 1.2rem; }
+        h2 { text-align: center; font-size: 1.2rem; margin-bottom: 20px; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
         
         button { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
@@ -17,15 +16,29 @@
         .btn-export { background: #6b7280; }
         .btn-import { background: #059669; }
         
-        /* Forces the table to stay within screen bounds */
-        .table-wrap { overflow-x: auto; background: white; border-radius: 8px; padding: 5px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: center; }
+        /* Forces content to scroll horizontally without stretching the page */
+        .table-wrap { 
+            width: 100%; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            background: white; 
+            border-radius: 8px; 
+            padding: 5px; 
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
         
-        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn-del { background: var(--danger); padding: 5px 8px; border-radius: 4px; }
+        /* Table fixed to fit container */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+        th, td { 
+            padding: 8px 4px; 
+            border-bottom: 1px solid #eee; 
+            text-align: center; 
+            word-wrap: break-word; 
+        }
         
-        #reportTable { margin-top: 20px; }
+        input { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-del { background: var(--danger); padding: 5px 8px; border-radius: 4px; color: white; border: none; }
     </style>
 </head>
 <body>
@@ -48,13 +61,14 @@
     </table>
 </div>
 
-<div class="table-wrap" style="margin-top:20px;">
-    <table>
-        <thead><tr><th>Summary</th><th>Cost</th><th>Cash</th><th>Final</th></tr></thead>
+<h3>Summary Report</h3>
+<div class="table-wrap">
+    <table id="reportTable">
+        <thead><tr><th>Desc</th><th>Cost</th><th>Cash</th><th>Final</th></tr></thead>
         <tbody id="reportBody"></tbody>
         <tfoot>
             <tr style="font-weight:bold; background:#eee;">
-                <td colspan="3" style="text-align:right;">TOTAL:</td>
+                <td colspan="3" style="text-align:right; padding-right:10px;">TOTAL:</td>
                 <td id="reportTotal">0.00</td>
             </tr>
         </tfoot>
@@ -76,7 +90,7 @@
             let final = cost - cash;
             row.querySelector('.final-value').innerText = final.toFixed(0);
             grandTotal += final;
-            reportHtml += `<tr><td>${row.querySelector('.desc').value.substring(0,8)}</td><td>${cost.toFixed(0)}</td><td>${cash.toFixed(0)}</td><td>${final.toFixed(0)}</td></tr>`;
+            reportHtml += `<tr><td>${row.querySelector('.desc').value}</td><td>${cost.toFixed(0)}</td><td>${cash.toFixed(0)}</td><td>${final.toFixed(0)}</td></tr>`;
         });
         document.getElementById('reportBody').innerHTML = reportHtml;
         document.getElementById('reportTotal').innerText = grandTotal.toFixed(0);
@@ -85,9 +99,9 @@
     function addRow(data = {desc: '', cost: '0', cash: '0'}) {
         let row = document.createElement('tr');
         row.innerHTML = `
-            <td><input type="text" class="desc" style="width:60px" value="${data.desc}" oninput="calculate()"></td>
-            <td><input type="text" class="cost" style="width:50px" value="${data.cost}" oninput="calculate()"></td>
-            <td><input type="text" class="cashback" style="width:50px" value="${data.cash}" oninput="calculate()"></td>
+            <td><input type="text" class="desc" value="${data.desc}" oninput="calculate()"></td>
+            <td><input type="text" class="cost" value="${data.cost}" oninput="calculate()"></td>
+            <td><input type="text" class="cashback" value="${data.cash}" oninput="calculate()"></td>
             <td class="final-value">0</td>
             <td><button class="btn-del" onclick="this.closest('tr').remove(); calculate();">✕</button></td>
         `;
