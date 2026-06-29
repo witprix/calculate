@@ -7,59 +7,68 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #4f46e5; --danger: #ef4444; --bg: #f9fafb; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); padding: 40px 20px; max-width: 900px; margin: auto; color: #374151; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); padding: 20px; max-width: 900px; margin: auto; color: #374151; }
         
         h2 { text-align: center; color: #111827; }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; justify-content: center; }
         
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; }
+        button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; white-space: nowrap; }
         .btn-add { background: var(--primary); color: white; }
         .btn-export { background: #6b7280; color: white; }
         .btn-import { background: #059669; color: white; }
-        .btn-del { background: #fee2e2; color: var(--danger); padding: 6px 12px; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        th { background: #f3f4f6; padding: 15px; font-size: 14px; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; }
+        .btn-del { background: #fee2e2; color: var(--danger); padding: 6px 10px; }
         
-        input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        /* Table Responsive Wrapper */
+        .table-container { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { background: #f3f4f6; padding: 12px; font-size: 12px; text-transform: uppercase; }
+        td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center; }
         
-        #reportTable { margin-top: 50px; background: #fff; }
-        .total-row { background: #f3f4f6 !important; font-weight: bold; font-size: 1.2em; }
+        input { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            th, td { padding: 8px 4px; font-size: 13px; }
+            .btn-group button { width: 100%; }
+        }
     </style>
 </head>
 <body>
 
-<h2>Expense Tracker Pro</h2>
+<h2>Expense Tracker</h2>
 
 <div class="btn-group">
-    <button class="btn-add" onclick="addRow()">+ Add New Expense</button>
+    <button class="btn-add" onclick="addRow()">+ Add Expense</button>
     <button class="btn-export" onclick="exportData()">Export JSON</button>
     <button class="btn-import" onclick="document.getElementById('importFile').click()">Import File</button>
     <input type="file" id="importFile" style="display:none" onchange="importData(event)">
 </div>
 
-<table>
-    <thead>
-        <tr><th>Description</th><th>Cost</th><th>Cashback</th><th>Final</th><th>Action</th></tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-</table>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr><th>Desc</th><th>Cost</th><th>Cash</th><th>Final</th><th>Action</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
 
-<h3>Summary Report</h3>
-<table id="reportTable">
-    <thead>
-        <tr><th>Description</th><th>Actual</th><th>Cashback</th><th>Final</th></tr>
-    </thead>
-    <tbody id="reportBody"></tbody>
-    <tfoot>
-        <tr class="total-row">
-            <td colspan="3" style="text-align:right; padding-right: 20px;">GRAND TOTAL:</td>
-            <td id="reportTotal">0.00</td>
-        </tr>
-    </tfoot>
-</table>
+<h3 style="margin-top:40px;">Summary</h3>
+<div class="table-container">
+    <table id="reportTable">
+        <thead>
+            <tr><th>Description</th><th>Actual</th><th>Cashback</th><th>Final</th></tr>
+        </thead>
+        <tbody id="reportBody"></tbody>
+        <tfoot>
+            <tr style="background:#f3f4f6; font-weight:bold;">
+                <td colspan="3" style="text-align:right; padding-right:20px;">TOTAL:</td>
+                <td id="reportTotal">0.00</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 
 <script>
     function evaluateMath(str) {
@@ -89,7 +98,7 @@
             <td><input type="text" class="cost" value="${data.cost}" oninput="calculate()"></td>
             <td><input type="text" class="cashback" value="${data.cash}" oninput="calculate()"></td>
             <td class="final-value">0.00</td>
-            <td><button class="btn-del" onclick="this.closest('tr').remove(); calculate();">Delete</button></td>
+            <td><button class="btn-del" onclick="this.closest('tr').remove(); calculate();">✕</button></td>
         `;
         document.getElementById('tableBody').appendChild(row);
         calculate();
