@@ -4,52 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+        :root { --primary: #4f46e5; --danger: #ef4444; --bg: #f9fafb; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); padding: 40px 20px; max-width: 900px; margin: auto; color: #374151; }
         
-        /* Input Table Styles */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        h2 { text-align: center; color: #111827; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 25px; justify-content: center; }
+        
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: 0.2s; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-export { background: #6b7280; color: white; }
+        .btn-import { background: #059669; color: white; }
+        .btn-del { background: #fee2e2; color: var(--danger); padding: 6px 12px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* Report Table Styles (The "Excel View") */
-        #reportTable { width: 100%; border-collapse: collapse; border: 2px solid #333; margin-top: 20px; }
-        #reportTable th { background-color: #d1d1d1; border: 1px solid #333; padding: 10px; text-align: center; }
-        #reportTable td { border: 1px solid #999; padding: 8px; text-align: right; }
-        #reportTable .desc-cell { text-align: left; }
-
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; background: #007bff; color: white; font-weight: bold; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        th { background: #f3f4f6; padding: 15px; font-size: 14px; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center; }
+        
+        input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        
+        #reportTable { margin-top: 50px; background: #fff; }
+        .total-row { background: #f3f4f6 !important; font-weight: bold; font-size: 1.2em; }
     </style>
 </head>
 <body>
 
-<h2>Expense Tracker</h2>
+<h2>Expense Tracker Pro</h2>
 
 <div class="btn-group">
-    <button onclick="addRow()">+ Add Row</button>
-    <button onclick="exportData()" style="background:#6c757d;">Export (JSON)</button>
-    <button onclick="document.getElementById('importFile').click()" style="background:#17a2b8;">Import</button>
+    <button class="btn-add" onclick="addRow()">+ Add New Expense</button>
+    <button class="btn-export" onclick="exportData()">Export JSON</button>
+    <button class="btn-import" onclick="document.getElementById('importFile').click()">Import File</button>
     <input type="file" id="importFile" style="display:none" onchange="importData(event)">
 </div>
 
-<table id="productTable">
+<table>
     <thead>
-        <tr><th>Description</th><th>Actual Cost</th><th>Cashback</th><th>Final Value</th></tr>
+        <tr><th>Description</th><th>Cost</th><th>Cashback</th><th>Final</th><th>Action</th></tr>
     </thead>
     <tbody id="tableBody"></tbody>
 </table>
 
-<hr>
-<h3>Consolidated Report (Screenshot this for WhatsApp)</h3>
+<h3>Summary Report</h3>
 <table id="reportTable">
     <thead>
-        <tr><th>Description</th><th>Actual Cost</th><th>Cashback</th><th>Final</th></tr>
+        <tr><th>Description</th><th>Actual</th><th>Cashback</th><th>Final</th></tr>
     </thead>
     <tbody id="reportBody"></tbody>
     <tfoot>
-        <tr style="background:#eee; font-weight:bold;">
-            <td colspan="3" style="text-align:right;">TOTAL:</td>
+        <tr class="total-row">
+            <td colspan="3" style="text-align:right; padding-right: 20px;">GRAND TOTAL:</td>
             <td id="reportTotal">0.00</td>
         </tr>
     </tfoot>
@@ -57,79 +63,54 @@
 
 <script>
     function evaluateMath(str) {
-        try {
-            // Remove everything except numbers, operators, and decimal points
-            let sanitized = str.replace(/[^0-9+\-*/(). ]/g, '');
-            // Evaluate safely
-            return new Function('return ' + sanitized)();
-        } catch (e) {
-            return 0;
-        }
+        try { return new Function('return ' + str.replace(/[^0-9+\-*/(). ]/g, ''))(); } 
+        catch (e) { return 0; }
     }
 
     function calculate() {
         let grandTotal = 0;
         let reportHtml = '';
-        
         document.querySelectorAll('#tableBody tr').forEach(row => {
-            let desc = row.querySelector('.desc').value;
-            let costInput = row.querySelector('.cost').value;
-            let cashInput = row.querySelector('.cashback').value;
-            
-            let cost = evaluateMath(costInput) || 0;
-            let cash = evaluateMath(cashInput) || 0;
+            let cost = evaluateMath(row.querySelector('.cost').value) || 0;
+            let cash = evaluateMath(row.querySelector('.cashback').value) || 0;
             let final = cost - cash;
-            
             row.querySelector('.final-value').innerText = final.toFixed(2);
             grandTotal += final;
-
-            // Populate Report Table
-            reportHtml += `<tr>
-                <td class="desc-cell">${desc}</td>
-                <td>${cost.toFixed(2)}</td>
-                <td>${cash.toFixed(2)}</td>
-                <td>${final.toFixed(2)}</td>
-            </tr>`;
+            reportHtml += `<tr><td>${row.querySelector('.desc').value}</td><td>${cost.toFixed(2)}</td><td>${cash.toFixed(2)}</td><td>${final.toFixed(2)}</td></tr>`;
         });
-        
         document.getElementById('reportBody').innerHTML = reportHtml;
         document.getElementById('reportTotal').innerText = grandTotal.toFixed(2);
     }
 
     function addRow(data = {desc: '', cost: '0', cash: '0'}) {
-        let row = `<tr>
+        let row = document.createElement('tr');
+        row.innerHTML = `
             <td><input type="text" class="desc" value="${data.desc}" oninput="calculate()"></td>
             <td><input type="text" class="cost" value="${data.cost}" oninput="calculate()"></td>
             <td><input type="text" class="cashback" value="${data.cash}" oninput="calculate()"></td>
             <td class="final-value">0.00</td>
-        </tr>`;
-        document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
+            <td><button class="btn-del" onclick="this.closest('tr').remove(); calculate();">Delete</button></td>
+        `;
+        document.getElementById('tableBody').appendChild(row);
         calculate();
     }
 
     function exportData() {
-        let name = prompt("Enter filename:", "expenses.json");
-        if (!name) return;
-        let data = [];
-        document.querySelectorAll('#tableBody tr').forEach(row => {
-            data.push({ desc: row.querySelector('.desc').value, cost: row.querySelector('.cost').value, cash: row.querySelector('.cashback').value });
-        });
+        let data = Array.from(document.querySelectorAll('#tableBody tr')).map(row => ({
+            desc: row.querySelector('.desc').value, cost: row.querySelector('.cost').value, cash: row.querySelector('.cashback').value
+        }));
         let blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-        let url = URL.createObjectURL(blob);
         let a = document.createElement('a');
-        a.href = url; a.download = name.endsWith('.json') ? name : name + '.json';
-        a.click();
+        a.href = URL.createObjectURL(blob); a.download = "expenses.json"; a.click();
     }
 
     function importData(event) {
-        let file = event.target.files[0];
         let reader = new FileReader();
         reader.onload = (e) => {
-            let data = JSON.parse(e.target.result);
             document.getElementById('tableBody').innerHTML = '';
-            data.forEach(item => addRow(item));
+            JSON.parse(e.target.result).forEach(item => addRow(item));
         };
-        reader.readAsText(file);
+        reader.readAsText(event.target.files[0]);
     }
 
     addRow();
