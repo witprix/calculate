@@ -44,10 +44,10 @@
     <table>
         <thead>
             <tr id="topHeaderRow">
-                <th contenteditable="true">Desc</th>
-                <th contenteditable="true">Cost</th>
-                <th contenteditable="true">Cash</th>
-                <th contenteditable="true">Final</th>
+                <th contenteditable="true" class="editable-header">Desc</th>
+                <th contenteditable="true" class="editable-header">Cost</th>
+                <th contenteditable="true" class="editable-header">Cash</th>
+                <th contenteditable="true" class="editable-header">Final</th>
                 <th>Del</th>
             </tr>
         </thead>
@@ -76,10 +76,14 @@
     document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
     document.getElementById('importFile').addEventListener('change', importData);
 
+    // Add listeners to editable headers
+    document.querySelectorAll('.editable-header').forEach(el => {
+        el.addEventListener('input', updateReportHeaders);
+    });
+
     function updateReportHeaders() {
         const topHeaders = document.querySelectorAll('#topHeaderRow th');
         const reportHeaders = document.querySelector('#reportHead tr');
-        // Copy the first 4 headers (skip "Del")
         reportHeaders.innerHTML = `<th>${topHeaders[0].innerText}</th><th>${topHeaders[1].innerText}</th><th>${topHeaders[2].innerText}</th><th>${topHeaders[3].innerText}</th>`;
     }
 
@@ -89,7 +93,6 @@
     }
 
     function calculate() {
-        updateReportHeaders(); // Syncs headers whenever data updates
         let grandTotal = 0;
         let reportHtml = '';
         document.querySelectorAll('#tableBody tr').forEach(row => {
@@ -138,6 +141,7 @@
     }
 
     addRow();
+    updateReportHeaders();
 </script>
 </body>
 </html>
