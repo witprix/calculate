@@ -43,7 +43,7 @@
 <div class="table-wrap">
     <table>
         <thead>
-            <tr>
+            <tr id="topHeaderRow">
                 <th contenteditable="true">Desc</th>
                 <th contenteditable="true">Cost</th>
                 <th contenteditable="true">Cash</th>
@@ -58,7 +58,7 @@
 <h3>Summary Report</h3>
 <div class="table-wrap">
     <table id="reportTable">
-        <thead><tr><th>Desc</th><th>Cost</th><th>Cash</th><th>Final</th></tr></thead>
+        <thead id="reportHead"><tr><th>Desc</th><th>Cost</th><th>Cash</th><th>Final</th></tr></thead>
         <tbody id="reportBody"></tbody>
         <tfoot>
             <tr style="font-weight:bold; background:#eee;">
@@ -70,11 +70,18 @@
 </div>
 
 <script>
-    // --- Secure Event Listeners ---
+    // Link buttons
     document.getElementById('addBtn').addEventListener('click', () => addRow());
     document.getElementById('exportBtn').addEventListener('click', exportData);
     document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
     document.getElementById('importFile').addEventListener('change', importData);
+
+    function updateReportHeaders() {
+        const topHeaders = document.querySelectorAll('#topHeaderRow th');
+        const reportHeaders = document.querySelector('#reportHead tr');
+        // Copy the first 4 headers (skip "Del")
+        reportHeaders.innerHTML = `<th>${topHeaders[0].innerText}</th><th>${topHeaders[1].innerText}</th><th>${topHeaders[2].innerText}</th><th>${topHeaders[3].innerText}</th>`;
+    }
 
     function evaluateMath(str) {
         try { return new Function('return ' + str.replace(/[^0-9+\-*/(). ]/g, ''))(); } 
@@ -82,6 +89,7 @@
     }
 
     function calculate() {
+        updateReportHeaders(); // Syncs headers whenever data updates
         let grandTotal = 0;
         let reportHtml = '';
         document.querySelectorAll('#tableBody tr').forEach(row => {
@@ -105,13 +113,8 @@
             <td class="final-value">0</td>
             <td><button class="del-btn">✕</button></td>
         `;
-        
         row.querySelectorAll('input').forEach(i => i.addEventListener('input', calculate));
-        row.querySelector('.del-btn').addEventListener('click', (e) => {
-            e.target.closest('tr').remove();
-            calculate();
-        });
-        
+        row.querySelector('.del-btn').addEventListener('click', (e) => { e.target.closest('tr').remove(); calculate(); });
         document.getElementById('tableBody').appendChild(row);
         calculate();
     }
