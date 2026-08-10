@@ -219,6 +219,35 @@
   }
   input.cost, input.cashback { font-family: 'IBM Plex Mono', monospace; }
 
+  .cash-wrap { display: flex; align-items: center; gap: 3px; }
+  .cash-wrap .cell.cashback { min-width: 0; }
+  .pct-toggle {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 6px;
+    border: 1px solid var(--paper-line);
+    background: var(--card);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .pct-toggle:hover { filter: brightness(0.97); }
+  .pct-toggle.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--white);
+  }
+
+  .field-hint {
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    margin: -8px 0 14px;
+    text-align: center;
+  }
+
   .final-value {
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 600;
@@ -335,6 +364,7 @@
   <label for="currencySymbol">Currency symbol</label>
   <input type="text" id="currencySymbol" class="cell" value="₹" maxlength="3">
 </div>
+<p class="field-hint">Tip: tap the % button next to Cashback to enter it as a percentage of Cost.</p>
 
 <div class="ledger-card">
   <div class="table-scroll">
@@ -527,21 +557,46 @@
     row.innerHTML =
       '<td><input type="text" class="cell desc" placeholder="What was it for?" value="' + escapeHtml(data.desc) + '"></td>' +
       '<td><input type="text" class="cell cost" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cost) + '"></td>' +
-      '<td><input type="text" class="cell cashback" inputmode="decimal" placeholder="0.00 or 10%" value="' + escapeHtml(data.cash) + '"></td>' +
+      '<td><div class="cash-wrap"><input type="text" class="cell cashback" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cash) + '"><button type="button" class="pct-toggle" aria-label="Toggle percentage mode">%</button></div></td>' +
       '<td class="final-value">' + fmt(0) + '</td>' +
       '<td><button class="del-btn" aria-label="Delete row">✕</button></td>';
 
     row.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { calculate(); persist(); }));
 
+    // Percentage toggle: lets users mark cashback as "% of cost" without
+    // needing a % key on their keyboard.
+    const cashbackInput = row.querySelector('.cashback');
+    const pctToggle = row.querySelector('.pct-toggle');
+
+    function syncToggleState() {
+      pctToggle.classList.toggle('active', cashbackInput.value.trim().endsWith('%'));
+    }
+    syncToggleState();
+
+    pctToggle.addEventListener('click', () => {
+      const val = cashbackInput.value.trim();
+      if (val.endsWith('%')) {
+        cashbackInput.value = val.slice(0, -1);
+      } else {
+        cashbackInput.value = val.replace('%', '') + '%';
+      }
+      syncToggleState();
+      calculate();
+      persist();
+      cashbackInput.focus();
+    });
+
+    cashbackInput.addEventListener('input', syncToggleState);
+
     // When the cashback cell was entered as a percentage, resolve it into the
     // actual computed amount as soon as the user moves to another cell.
-    const cashbackInput = row.querySelector('.cashback');
     cashbackInput.addEventListener('blur', () => {
       const raw = cashbackInput.value;
       if (raw && raw.indexOf('%') !== -1) {
         const costRaw = row.querySelector('.cost').value;
         const resolved = computeCashbackAmount(costRaw, raw);
         cashbackInput.value = resolved.toFixed(2);
+        syncToggleState();
         calculate();
         persist();
       }
