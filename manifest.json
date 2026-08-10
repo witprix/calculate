@@ -2,7 +2,7 @@
   "name": "Ledger — Expense Tracker",
   "short_name": "Ledger",
   "description": "A ledger-style expense and cashback tracker that works offline.",
-  "start_url": "./index.html",
+  "start_url": "./calculate2.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#eef1e6",
