@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ledger — Expense Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #eef1e6;
+    --paper-line: #cfd5c1;
+    --card: #fbfcf8;
+    --ink: #23261f;
+    --ink-soft: #6b6f60;
+    --green: #1f6f50;
+    --green-dark: #164f38;
+    --gold: #b8872e;
+    --red: #a63a2e;
+    --white: #ffffff;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 14px 12px 40px;
+    background:
+      repeating-linear-gradient(var(--paper) 0px, var(--paper) 27px, var(--paper-line) 28px),
+      var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 10px 4px 16px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 16px;
+  }
+  .masthead h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0;
+    color: var(--ink);
+  }
+  .masthead p {
+    margin: 2px 0 0;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .stamp-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--green-dark);
+    border: 1.5px solid var(--green);
+    border-radius: 20px;
+    padding: 3px 10px;
+    transform: rotate(-3deg);
+    white-space: nowrap;
+  }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  button {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: transform 0.08s ease, filter 0.15s ease;
+  }
+  button:active { transform: scale(0.97); }
+  button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+  }
+  #addBtn {
+    grid-column: span 3;
+    background: var(--green);
+    color: var(--white);
+    padding: 14px;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 0 var(--green-dark);
+  }
+  #addBtn:active { box-shadow: 0 0 0 var(--green-dark); transform: translateY(2px) scale(0.99); }
+  .btn-secondary {
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--paper-line);
+  }
+  .btn-secondary:hover { filter: brightness(0.97); }
+  #delAllBtn { color: var(--red); }
+
+  .currency-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .currency-row input {
+    width: 42px;
+    text-align: center;
+    padding: 6px 4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ---------- Table card ---------- */
+  .ledger-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--paper-line);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(35, 38, 31, 0.08);
+    margin-bottom: 0;
+  }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 420px; }
+
+  thead th {
+    background: var(--green);
+    color: var(--white);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 10px 6px;
+    text-align: center;
+    border-bottom: none;
+  }
+  thead th[contenteditable="true"] {
+    cursor: text;
+    border-bottom: 1px dashed rgba(255,255,255,0.5);
+  }
+  thead th.col-del { width: 40px; }
+
+  tbody td {
+    padding: 6px 5px;
+    border-bottom: 1px solid var(--paper-line);
+    text-align: center;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr {
+    animation: rowIn 0.18s ease-out;
+  }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  tbody tr.removing {
+    animation: rowOut 0.16s ease-in forwards;
+  }
+  @keyframes rowOut {
+    to { opacity: 0; transform: translateX(12px); }
+  }
+
+  input.cell {
+    width: 100%;
+    padding: 7px 5px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink);
+    text-align: center;
+  }
+  input.cell:hover { background: rgba(31,111,80,0.05); }
+  input.cell:focus {
+    border-color: var(--green);
+    background: var(--white);
+    outline: none;
+  }
+  input.cost, input.cashback { font-family: 'IBM Plex Mono', monospace; }
+
+  .final-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+  }
+  .final-value.positive { color: var(--ink); }
+  .final-value.zero { color: var(--ink-soft); }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 1rem;
+    padding: 6px;
+    line-height: 1;
+    border-radius: 6px;
+  }
+  .del-btn:hover { background: rgba(166,58,46,0.1); }
+
+  .empty-state {
+    text-align: center;
+    padding: 34px 16px;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+  .empty-state span { display: block; font-size: 1.6rem; margin-bottom: 6px; }
+
+  /* ---------- Tear line + total ---------- */
+  .tear {
+    border-top: 2px dashed var(--paper-line);
+    position: relative;
+    margin-top: 2px;
+  }
+  .totals-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px 16px;
+    background: var(--card);
+    border-radius: 0 0 var(--radius) var(--radius);
+    border: 1px solid var(--paper-line);
+    border-top: none;
+    margin-top: -1px;
+  }
+  .entry-count {
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .total-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--green-dark);
+    border: 2px solid var(--green);
+    border-radius: 999px;
+    padding: 6px 18px;
+    background: rgba(31,111,80,0.06);
+  }
+  .total-badge.negative { color: var(--red); border-color: var(--red); background: rgba(166,58,46,0.06); }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.78rem;
+    padding: 8px 16px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    tbody tr, tbody tr.removing, .toast { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div>
+    <h1>Ledger</h1>
+    <p>Expense &amp; cashback tracker</p>
+  </div>
+  <div class="stamp-date" id="stampDate"></div>
+</div>
+
+<div class="toolbar">
+  <button id="addBtn">+ Add Entry</button>
+  <button id="exportJsonBtn" class="btn-secondary">Export JSON</button>
+  <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+  <button id="importBtn" class="btn-secondary">Import</button>
+  <button id="delAllBtn" class="btn-secondary">Clear All</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none">
+</div>
+
+<div class="currency-row">
+  <label for="currencySymbol">Currency symbol</label>
+  <input type="text" id="currencySymbol" class="cell" value="₹" maxlength="3">
+</div>
+
+<div class="ledger-card">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr id="topHeaderRow">
+          <th contenteditable="true" class="editable-header">Desc</th>
+          <th contenteditable="true" class="editable-header">Cost</th>
+          <th contenteditable="true" class="editable-header">Cashback</th>
+          <th contenteditable="true" class="editable-header">Net</th>
+          <th class="col-del"><span class="sr-only">Delete row</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="empty-state" hidden>
+    <span>🧾</span>
+    No entries yet — tap “Add Entry” to start your ledger.
+  </div>
+</div>
+
+<div class="tear"></div>
+<div class="totals-bar">
+  <span class="entry-count" id="entryCount">0 entries</span>
+  <span class="total-badge" id="totalBadge">$0.00</span>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+(function () {
+  const tableBody = document.getElementById('tableBody');
+  const emptyState = document.getElementById('emptyState');
+  const totalBadge = document.getElementById('totalBadge');
+  const entryCount = document.getElementById('entryCount');
+  const stampDate = document.getElementById('stampDate');
+  const currencyInput = document.getElementById('currencySymbol');
+  const toast = document.getElementById('toast');
+
+  const STORAGE_KEY = 'ledger:entries';
+  const HEADER_KEY = 'ledger:headers';
+  const CURRENCY_KEY = 'ledger:currency';
+  const hasStorage = typeof window.storage !== 'undefined';
+
+  // ---------- date stamp ----------
+  stampDate.textContent = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // ---------- toast ----------
+  let toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1400);
+  }
+
+  // ---------- safe math eval ----------
+  function evaluateMath(str) {
+    if (str == null) return 0;
+    const cleaned = String(str).replace(/[^0-9+\-*/(). ]/g, '');
+    if (!cleaned.trim()) return 0;
+    try {
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict"; return (' + cleaned + ')')();
+      return typeof result === 'number' && isFinite(result) ? result : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function currency() {
+    return currencyInput.value.trim() || '₹';
+  }
+
+  function fmt(n) {
+    const sign = n < 0 ? '-' : '';
+    return sign + currency() + Math.abs(n).toFixed(2);
+  }
+
+  // ---------- persistence ----------
+  let saveQueued = false;
+  async function persist() {
+    if (!hasStorage) return;
+    if (saveQueued) return;
+    saveQueued = true;
+    setTimeout(async () => {
+      saveQueued = false;
+      try {
+        const rows = collectRows();
+        const headers = Array.from(document.querySelectorAll('.editable-header')).map(h => h.innerText);
+        await window.storage.set(STORAGE_KEY, JSON.stringify(rows), false);
+        await window.storage.set(HEADER_KEY, JSON.stringify(headers), false);
+        await window.storage.set(CURRENCY_KEY, currency(), false);
+        showToast('Saved');
+      } catch (e) {
+        console.error('Save failed', e);
+      }
+    }, 300);
+  }
+
+  async function loadSaved() {
+    if (!hasStorage) { addRow(); return; }
+    try {
+      const [entriesRes, headersRes, currencyRes] = await Promise.allSettled([
+        window.storage.get(STORAGE_KEY, false),
+        window.storage.get(HEADER_KEY, false),
+        window.storage.get(CURRENCY_KEY, false)
+      ]);
+
+      if (currencyRes.status === 'fulfilled' && currencyRes.value) {
+        currencyInput.value = currencyRes.value.value;
+      }
+      if (headersRes.status === 'fulfilled' && headersRes.value) {
+        const headers = JSON.parse(headersRes.value.value);
+        document.querySelectorAll('.editable-header').forEach((h, i) => {
+          if (headers[i]) h.innerText = headers[i];
+        });
+      }
+      if (entriesRes.status === 'fulfilled' && entriesRes.value) {
+        const rows = JSON.parse(entriesRes.value.value);
+        if (Array.isArray(rows) && rows.length) {
+          rows.forEach(r => addRow(r, false));
+        } else {
+          addRow();
+        }
+      } else {
+        addRow();
+      }
+    } catch (e) {
+      addRow();
+    }
+    updateReportHeaders();
+    calculate();
+  }
+
+  // ---------- header sync (kept for label customization) ----------
+  function updateReportHeaders() {
+    // Header labels are edited directly on the single table now;
+    // nothing further to sync, but keep hook for future report views.
+  }
+  document.querySelectorAll('.editable-header').forEach(el => {
+    el.addEventListener('input', () => { updateReportHeaders(); persist(); });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  });
+
+  function collectRows() {
+    return Array.from(tableBody.querySelectorAll('tr')).map(row => ({
+      desc: row.querySelector('.desc').value,
+      cost: row.querySelector('.cost').value,
+      cash: row.querySelector('.cashback').value
+    }));
+  }
+
+  function calculate() {
+    let grandTotal = 0;
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cost = evaluateMath(row.querySelector('.cost').value);
+      const cash = evaluateMath(row.querySelector('.cashback').value);
+      const final = cost - cash;
+      const finalEl = row.querySelector('.final-value');
+      finalEl.textContent = fmt(final);
+      finalEl.classList.toggle('zero', final === 0);
+      grandTotal += final;
+    });
+
+    totalBadge.textContent = fmt(grandTotal);
+    totalBadge.classList.toggle('negative', grandTotal < 0);
+    entryCount.textContent = rows.length + (rows.length === 1 ? ' entry' : ' entries');
+    emptyState.hidden = rows.length !== 0;
+  }
+
+  function addRow(data, save) {
+    data = data || { desc: '', cost: '', cash: '' };
+    if (save === undefined) save = true;
+
+    const row = document.createElement('tr');
+    row.innerHTML =
+      '<td><input type="text" class="cell desc" placeholder="What was it for?" value="' + escapeHtml(data.desc) + '"></td>' +
+      '<td><input type="text" class="cell cost" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cost) + '"></td>' +
+      '<td><input type="text" class="cell cashback" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cash) + '"></td>' +
+      '<td class="final-value">' + fmt(0) + '</td>' +
+      '<td><button class="del-btn" aria-label="Delete row">✕</button></td>';
+
+    row.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { calculate(); persist(); }));
+    row.querySelector('.del-btn').addEventListener('click', () => {
+      row.classList.add('removing');
+      row.addEventListener('animationend', () => { row.remove(); calculate(); persist(); }, { once: true });
+    });
+
+    tableBody.appendChild(row);
+    calculate();
+    if (save) persist();
+    return row;
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ---------- toolbar actions ----------
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const row = addRow();
+    row.querySelector('.desc').focus();
+  });
+
+  document.getElementById('delAllBtn').addEventListener('click', () => {
+    if (!tableBody.children.length) return;
+    if (confirm('Clear every entry in this ledger? This cannot be undone.')) {
+      tableBody.innerHTML = '';
+      calculate();
+      persist();
+    }
+  });
+
+  document.getElementById('exportJsonBtn').addEventListener('click', () => {
+    const data = collectRows();
+    downloadBlob(JSON.stringify(data, null, 2), 'application/json', 'expenses.json');
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const headers = Array.from(document.querySelectorAll('.editable-header')).map(h => h.innerText);
+    const rows = collectRows();
+    let csv = headers.slice(0, 4).map(csvEscape).join(',') + '\n';
+    rows.forEach(r => {
+      const final = evaluateMath(r.cost) - evaluateMath(r.cash);
+      csv += [r.desc, r.cost, r.cash, final.toFixed(2)].map(csvEscape).join(',') + '\n';
+    });
+    downloadBlob(csv, 'text/csv', 'expenses.csv');
+  });
+
+  function csvEscape(v) {
+    v = String(v == null ? '' : v);
+    if (/[",\n]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  }
+
+  function downloadBlob(content, type, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: type }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const items = JSON.parse(ev.target.result);
+        if (!Array.isArray(items)) throw new Error('Invalid file');
+        tableBody.innerHTML = '';
+        items.forEach(item => addRow(item, false));
+        if (!items.length) addRow(undefined, false);
+        calculate();
+        persist();
+        showToast('Imported');
+      } catch (err) {
+        alert('Could not read that file — make sure it is a Ledger JSON export.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  currencyInput.addEventListener('input', () => { calculate(); persist(); });
+
+  loadSaved();
+})();
+</script>
+</body>
+</html>
