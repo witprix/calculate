@@ -410,6 +410,17 @@
     return currencyInput.value.trim() || '₹';
   }
 
+  // Cashback can be entered as a flat amount ("50") or a percentage of cost ("10%").
+  // Percentages are resolved against the row's current cost value.
+  function computeCashbackAmount(costRaw, cashRaw) {
+    if (cashRaw != null && String(cashRaw).indexOf('%') !== -1) {
+      const pct = evaluateMath(String(cashRaw).replace('%', ''));
+      const cost = evaluateMath(costRaw);
+      return cost * (pct / 100);
+    }
+    return evaluateMath(cashRaw);
+  }
+
   function fmt(n) {
     const sign = n < 0 ? '-' : '';
     return sign + currency() + Math.abs(n).toFixed(2);
@@ -494,7 +505,7 @@
     const rows = tableBody.querySelectorAll('tr');
     rows.forEach(row => {
       const cost = evaluateMath(row.querySelector('.cost').value);
-      const cash = evaluateMath(row.querySelector('.cashback').value);
+      const cash = computeCashbackAmount(row.querySelector('.cost').value, row.querySelector('.cashback').value);
       const final = cost - cash;
       const finalEl = row.querySelector('.final-value');
       finalEl.textContent = fmt(final);
@@ -516,11 +527,26 @@
     row.innerHTML =
       '<td><input type="text" class="cell desc" placeholder="What was it for?" value="' + escapeHtml(data.desc) + '"></td>' +
       '<td><input type="text" class="cell cost" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cost) + '"></td>' +
-      '<td><input type="text" class="cell cashback" inputmode="decimal" placeholder="0.00" value="' + escapeHtml(data.cash) + '"></td>' +
+      '<td><input type="text" class="cell cashback" inputmode="decimal" placeholder="0.00 or 10%" value="' + escapeHtml(data.cash) + '"></td>' +
       '<td class="final-value">' + fmt(0) + '</td>' +
       '<td><button class="del-btn" aria-label="Delete row">✕</button></td>';
 
     row.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { calculate(); persist(); }));
+
+    // When the cashback cell was entered as a percentage, resolve it into the
+    // actual computed amount as soon as the user moves to another cell.
+    const cashbackInput = row.querySelector('.cashback');
+    cashbackInput.addEventListener('blur', () => {
+      const raw = cashbackInput.value;
+      if (raw && raw.indexOf('%') !== -1) {
+        const costRaw = row.querySelector('.cost').value;
+        const resolved = computeCashbackAmount(costRaw, raw);
+        cashbackInput.value = resolved.toFixed(2);
+        calculate();
+        persist();
+      }
+    });
+
     row.querySelector('.del-btn').addEventListener('click', () => {
       row.classList.add('removing');
       row.addEventListener('animationend', () => { row.remove(); calculate(); persist(); }, { once: true });
