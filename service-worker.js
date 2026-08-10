@@ -1,7 +1,7 @@
 const CACHE_VERSION = 'ledger-v1';
 const APP_SHELL = [
   './',
-  './calculate2.html',
+  './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
