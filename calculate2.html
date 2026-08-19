@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Ledger">
 <meta name="mobile-web-app-capable" content="yes">
 
@@ -395,6 +395,31 @@
     .fab { transition: none; }
     tbody tr, tbody tr.removing, .toast { animation: none !important; transition: none !important; }
   }
+
+  /* ---------- Dark Mode Support ---------- */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121212;
+      --paper-line: #2c2c2e;
+      --card: #1c1c1e;
+      --ink: #e5e5ea;
+      --ink-soft: #8e8e93;
+      --green: #2e8b57;
+      --green-dark: #70d696; 
+      --white: #242426; 
+      --gold: #d4a34b;
+    }
+    
+    body {
+      background:
+        repeating-linear-gradient(var(--paper) 0px, var(--paper) 27px, var(--paper-line) 28px),
+        var(--paper);
+    }
+    
+    thead th { color: #ffffff; }
+    #addBtn { color: #ffffff; }
+    .fab { color: #ffffff; }
+  }
 </style>
 </head>
 <body>
@@ -619,6 +644,7 @@
 
     row.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { calculate(); persist(); }));
 
+    const costInput = row.querySelector('.cost');
     const cashbackInput = row.querySelector('.cashback');
     const pctToggle = row.querySelector('.pct-toggle');
 
@@ -642,6 +668,15 @@
 
     cashbackInput.addEventListener('input', syncToggleState);
 
+    // Auto-format cost on blur
+    costInput.addEventListener('blur', () => {
+      const val = evaluateMath(costInput.value);
+      if (val !== 0 || costInput.value !== '') {
+        costInput.value = val.toFixed(2);
+      }
+    });
+
+    // Auto-format cashback on blur
     cashbackInput.addEventListener('blur', () => {
       const raw = cashbackInput.value;
       if (raw && raw.indexOf('%') !== -1) {
@@ -651,7 +686,27 @@
         syncToggleState();
         calculate();
         persist();
+      } else {
+        const val = evaluateMath(raw);
+        if (val !== 0 || raw !== '') {
+           cashbackInput.value = val.toFixed(2);
+        }
       }
+    });
+
+    // Enter key navigation
+    const inputs = row.querySelectorAll('input.cell');
+    inputs.forEach((input, index) => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          } else {
+            input.blur(); 
+          }
+        }
+      });
     });
 
     row.querySelector('.del-btn').addEventListener('click', () => {
