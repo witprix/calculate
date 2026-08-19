@@ -747,21 +747,29 @@
   if (window.visualViewport) {
     const vv = window.visualViewport;
     const fab = document.getElementById('fabAddBtn');
+    let isKeyboardOpen = false;
+
     function handleViewportResize() {
       const keyboardInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      const keyboardOpen = keyboardInset > 60;
-      document.body.style.paddingBottom = (keyboardOpen ? keyboardInset + 20 : 40) + 'px';
-      fab.style.bottom = (keyboardOpen ? keyboardInset + 16 : 20) + 'px';
+      const currentlyOpen = keyboardInset > 60;
+      
+      document.body.style.paddingBottom = (currentlyOpen ? keyboardInset + 20 : 40) + 'px';
+      fab.style.bottom = (currentlyOpen ? keyboardInset + 16 : 20) + 'px';
 
-      const active = document.activeElement;
-      if (keyboardOpen && active && (active.tagName === 'INPUT' || active.isContentEditable)) {
-        setTimeout(() => {
-          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        }, 50);
+      // Only scroll once when the keyboard initially opens to prevent bouncing loops
+      if (currentlyOpen && !isKeyboardOpen) {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.isContentEditable)) {
+          setTimeout(() => {
+            active.scrollIntoView({ block: 'center' });
+          }, 100);
+        }
       }
+      isKeyboardOpen = currentlyOpen;
     }
+    
+    // Listen ONLY to resize to stop aggressive jittering loop
     vv.addEventListener('resize', handleViewportResize);
-    vv.addEventListener('scroll', handleViewportResize);
   }
 
   // ---------- PWA: offline detection ----------
