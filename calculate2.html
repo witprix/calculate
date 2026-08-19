@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <title>Ledger — Expense Tracker</title>
 
 <!-- PWA -->
@@ -44,6 +44,18 @@
     color: var(--ink);
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Sticky header+toolbar wrapper (keeps Add Entry reachable when keyboard is open) ---------- */
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--paper);
+    padding-top: 2px;
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   /* ---------- Header ---------- */
@@ -332,6 +344,33 @@
     overflow: hidden; clip: rect(0,0,0,0); border: 0;
   }
 
+  /* ---------- Floating Add button ---------- */
+  .fab {
+    position: fixed;
+    right: 18px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--green);
+    color: var(--white);
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(22,79,56,0.4);
+    z-index: 50;
+    padding: 0;
+    transition: bottom 0.15s ease, transform 0.08s ease;
+  }
+  .fab:active { transform: scale(0.94); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fab { transition: none; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     tbody tr, tbody tr.removing, .toast { animation: none !important; transition: none !important; }
   }
@@ -339,25 +378,27 @@
 </head>
 <body>
 
-<div class="masthead">
-  <div>
-    <h1>Ledger</h1>
-    <p>Expense &amp; cashback tracker</p>
+<div class="sticky-top">
+  <div class="masthead">
+    <div>
+      <h1>Ledger</h1>
+      <p>Expense &amp; cashback tracker</p>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div class="stamp-date" id="stampDate"></div>
+      <div class="offline-pill" id="offlinePill" hidden>Offline — changes saved on this device</div>
+    </div>
   </div>
-  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-    <div class="stamp-date" id="stampDate"></div>
-    <div class="offline-pill" id="offlinePill" hidden>Offline — changes saved on this device</div>
-  </div>
-</div>
 
-<div class="toolbar">
-  <button id="addBtn">+ Add Entry</button>
-  <button id="exportJsonBtn" class="btn-secondary">Export JSON</button>
-  <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
-  <button id="importBtn" class="btn-secondary">Import</button>
-  <button id="delAllBtn" class="btn-secondary">Clear All</button>
-  <button id="installBtn">Install App</button>
-  <input type="file" id="importFile" accept="application/json" style="display:none">
+  <div class="toolbar">
+    <button id="addBtn">+ Add Entry</button>
+    <button id="exportJsonBtn" class="btn-secondary">Export JSON</button>
+    <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+    <button id="importBtn" class="btn-secondary">Import</button>
+    <button id="delAllBtn" class="btn-secondary">Clear All</button>
+    <button id="installBtn">Install App</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+  </div>
 </div>
 
 <div class="currency-row">
@@ -394,6 +435,7 @@
 </div>
 
 <div class="toast" id="toast">Saved</div>
+<button id="fabAddBtn" class="fab" aria-label="Add entry">+</button>
 
 <script>
 (function () {
@@ -619,10 +661,12 @@
   }
 
   // ---------- toolbar actions ----------
-  document.getElementById('addBtn').addEventListener('click', () => {
+  function handleAddEntry() {
     const row = addRow();
     row.querySelector('.desc').focus();
-  });
+  }
+  document.getElementById('addBtn').addEventListener('click', handleAddEntry);
+  document.getElementById('fabAddBtn').addEventListener('click', handleAddEntry);
 
   document.getElementById('delAllBtn').addEventListener('click', () => {
     if (!tableBody.children.length) return;
@@ -689,6 +733,32 @@
   currencyInput.addEventListener('input', () => { calculate(); persist(); });
 
   loadSaved();
+
+  // ---------- iOS keyboard handling ----------
+  // iOS Safari doesn't resize the layout viewport when the keyboard opens, so
+  // fixed/bottom content (toast, totals bar) can end up hidden behind it, and
+  // a newly focused input can end up out of view. visualViewport reports the
+  // real visible area, so we use it to pad the page and re-scroll the
+  // focused field into view.
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const fab = document.getElementById('fabAddBtn');
+    function handleViewportResize() {
+      const keyboardInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const keyboardOpen = keyboardInset > 60;
+      document.body.style.paddingBottom = (keyboardOpen ? keyboardInset + 20 : 40) + 'px';
+      fab.style.bottom = (keyboardOpen ? keyboardInset + 16 : 24) + 'px';
+
+      const active = document.activeElement;
+      if (keyboardOpen && active && (active.tagName === 'INPUT' || active.isContentEditable)) {
+        setTimeout(() => {
+          active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 50);
+      }
+    }
+    vv.addEventListener('resize', handleViewportResize);
+    vv.addEventListener('scroll', handleViewportResize);
+  }
 
   // ---------- PWA: offline detection ----------
   const offlinePill = document.getElementById('offlinePill');
