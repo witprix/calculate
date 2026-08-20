@@ -301,6 +301,20 @@
   }
   .del-btn:hover { background: rgba(166,58,46,0.1); }
 
+  /* ---------- Table Footer UI Totals ---------- */
+  tfoot tr {
+    background: rgba(31,111,80,0.06);
+    border-top: 2px solid var(--green);
+  }
+  tfoot td {
+    padding: 8px 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 0.76rem;
+    color: var(--ink);
+    text-align: center;
+  }
+
   .empty-state {
     text-align: center;
     padding: 30px 14px;
@@ -417,6 +431,8 @@
     }
     
     thead th { color: #ffffff; }
+    tfoot tr { background: rgba(112, 214, 150, 0.08); }
+    tfoot td { color: var(--white); }
     #addBtn { color: #ffffff; }
     .fab { color: #ffffff; }
   }
@@ -466,6 +482,16 @@
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
+      <!-- Added Table Footer for Real-time Totals -->
+      <tfoot id="tableFooter" hidden>
+        <tr>
+          <td>TOTAL</td>
+          <td id="uiTotalCost">0.00</td>
+          <td id="uiTotalCash">0.00</td>
+          <td id="uiTotalNet" class="final-value">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
   <div id="emptyState" class="empty-state" hidden>
@@ -486,6 +512,7 @@
 <script>
 (function () {
   const tableBody = document.getElementById('tableBody');
+  const tableFooter = document.getElementById('tableFooter');
   const emptyState = document.getElementById('emptyState');
   const totalBadge = document.getElementById('totalBadge');
   const entryCount = document.getElementById('entryCount');
@@ -613,21 +640,45 @@
 
   function calculate() {
     let grandTotal = 0;
+    let sumCost = 0;
+    let sumCash = 0;
     const rows = tableBody.querySelectorAll('tr');
+    
     rows.forEach(row => {
       const cost = evaluateMath(row.querySelector('.cost').value);
       const cash = computeCashbackAmount(row.querySelector('.cost').value, row.querySelector('.cashback').value);
       const final = cost - cash;
+      
+      sumCost += cost;
+      sumCash += cash;
+      grandTotal += final;
+      
       const finalEl = row.querySelector('.final-value');
       finalEl.textContent = fmt(final);
       finalEl.classList.toggle('zero', final === 0);
-      grandTotal += final;
     });
 
     totalBadge.textContent = fmt(grandTotal);
     totalBadge.classList.toggle('negative', grandTotal < 0);
     entryCount.textContent = rows.length + (rows.length === 1 ? ' entry' : ' entries');
     emptyState.hidden = rows.length !== 0;
+
+    // UI Bottom Totals Update
+    if (rows.length > 0) {
+      tableFooter.hidden = false;
+      document.getElementById('uiTotalCost').textContent = sumCost.toFixed(2);
+      document.getElementById('uiTotalCash').textContent = sumCash.toFixed(2);
+      
+      const uiTotalNet = document.getElementById('uiTotalNet');
+      uiTotalNet.textContent = fmt(grandTotal);
+      if (grandTotal < 0) {
+        uiTotalNet.style.color = 'var(--red)';
+      } else {
+        uiTotalNet.style.color = '';
+      }
+    } else {
+      tableFooter.hidden = true;
+    }
   }
 
   function addRow(data, save) {
@@ -746,7 +797,7 @@
     downloadBlob(JSON.stringify(data, null, 2), 'application/json', 'expenses.json');
   });
 
-  // ---------- Updated CSV Export Logic ----------
+  // ---------- CSV Export Logic ----------
   document.getElementById('exportCsvBtn').addEventListener('click', () => {
     const headers = Array.from(document.querySelectorAll('.editable-header')).map(h => h.innerText);
     const rows = collectRows();
@@ -758,7 +809,6 @@
 
     rows.forEach(r => {
       const costVal = evaluateMath(r.cost);
-      // Ensures percentage cashbacks compute correctly in the CSV
       const cashVal = computeCashbackAmount(r.cost, r.cash);
       const netVal = costVal - cashVal;
       
@@ -769,12 +819,10 @@
       csv += [r.desc, r.cost, r.cash, netVal.toFixed(2)].map(csvEscape).join(',') + '\n';
     });
 
-    // Appends the final totals row to the bottom of the CSV
     csv += ['TOTAL', totalCost.toFixed(2), totalCash.toFixed(2), totalNet.toFixed(2)].map(csvEscape).join(',') + '\n';
 
     downloadBlob(csv, 'text/csv', 'expenses.csv');
   });
-  // ---------------------------------------------
 
   function csvEscape(v) {
     v = String(v == null ? '' : v);
