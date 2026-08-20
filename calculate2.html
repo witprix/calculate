@@ -746,16 +746,35 @@
     downloadBlob(JSON.stringify(data, null, 2), 'application/json', 'expenses.json');
   });
 
+  // ---------- Updated CSV Export Logic ----------
   document.getElementById('exportCsvBtn').addEventListener('click', () => {
     const headers = Array.from(document.querySelectorAll('.editable-header')).map(h => h.innerText);
     const rows = collectRows();
     let csv = headers.slice(0, 4).map(csvEscape).join(',') + '\n';
+    
+    let totalCost = 0;
+    let totalCash = 0;
+    let totalNet = 0;
+
     rows.forEach(r => {
-      const final = evaluateMath(r.cost) - evaluateMath(r.cash);
-      csv += [r.desc, r.cost, r.cash, final.toFixed(2)].map(csvEscape).join(',') + '\n';
+      const costVal = evaluateMath(r.cost);
+      // Ensures percentage cashbacks compute correctly in the CSV
+      const cashVal = computeCashbackAmount(r.cost, r.cash);
+      const netVal = costVal - cashVal;
+      
+      totalCost += costVal;
+      totalCash += cashVal;
+      totalNet += netVal;
+
+      csv += [r.desc, r.cost, r.cash, netVal.toFixed(2)].map(csvEscape).join(',') + '\n';
     });
+
+    // Appends the final totals row to the bottom of the CSV
+    csv += ['TOTAL', totalCost.toFixed(2), totalCash.toFixed(2), totalNet.toFixed(2)].map(csvEscape).join(',') + '\n';
+
     downloadBlob(csv, 'text/csv', 'expenses.csv');
   });
+  // ---------------------------------------------
 
   function csvEscape(v) {
     v = String(v == null ? '' : v);
